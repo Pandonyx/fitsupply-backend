@@ -10,9 +10,9 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = Category.objects.filter(is_active=True)
     serializer_class = CategorySerializer
-    permission_classes = [permissions.AllowAny] # Anyone can view categories
+    permission_classes = [permissions.AllowAny]
 
-class ProductViewSet(viewsets.ReadOnlyModelViewSet):
+class ProductViewSet(viewsets.ModelViewSet):
     """
     A viewset for viewing products.
     Provides `list` and `retrieve` actions.
