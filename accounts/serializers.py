@@ -8,10 +8,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = ('username', 'email', 'password', 'password2', 'first_name', 'last_name')
-        extra_kwargs = {
-            'first_name': {'required': True},
-            'last_name': {'required': True}
-        }
+        # By default, first_name and last_name are not required by the model, so we remove the override.
 
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
