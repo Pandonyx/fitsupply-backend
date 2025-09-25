@@ -14,9 +14,22 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
 
 class ProductViewSet(viewsets.ModelViewSet):
     """
-    A viewset for viewing products.
-    Provides `list` and `retrieve` actions.
+    GET: Publicly readable list of products.
+    POST, PUT, DELETE: Restricted to admin users.
     """
     queryset = Product.objects.filter(is_active=True)
     serializer_class = ProductSerializer
-    permission_classes = [permissions.AllowAny]
+    
+    def get_queryset(self):
+        # Admin users can see all products, others see only active ones
+        if self.request.user and self.request.user.is_staff:
+            return Product.objects.all()
+        return Product.objects.filter(is_active=True)
+
+    def get_permissions(self):
+        """Set custom permissions for different actions."""
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            self.permission_classes = [permissions.IsAdminUser]
+        else: # list, retrieve
+            self.permission_classes = [permissions.AllowAny]
+        return super().get_permissions()

@@ -20,7 +20,7 @@ class Product(models.Model):
     slug = models.SlugField(max_length=220, unique=True)
     description = models.TextField()
     short_description = models.CharField(max_length=255, blank=True, null=True)
-    image = models.ImageField(upload_to='products/', blank=True, null=True)
+    image = models.ImageField(upload_to='products/')
     price = models.DecimalField(max_digits=10, decimal_places=2)
     compare_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     sku = models.CharField(max_length=50, unique=True, help_text="Stock Keeping Unit")
