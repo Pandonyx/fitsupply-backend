@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-ob@=c$!!$8!i-ym$50tit2m^=nd=ypz$sdxk23hny658_kn$8p
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['fitsupply.herokuapp.com', '127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ['pandonyx.pythonanywhere.com', '127.0.0.1', 'localhost']
 
 
 # Application definition
@@ -98,7 +98,7 @@ WSGI_APPLICATION = 'fitsupply_backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 from decouple import config
-from dj_database_url import dj_database_url
+import dj_database_url
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
