@@ -15,5 +15,7 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserProfileSerializer
 
     def get_object(self):
-        # This view should return the current authenticated user's profile
         return self.request.user
+
+    def patch(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, **kwargs)

@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from rest_framework import viewsets, permissions
+from django_filters.rest_framework import DjangoFilterBackend
 from .models import Category, Product
 from .serializers import CategorySerializer, ProductSerializer
 
@@ -19,6 +20,9 @@ class ProductViewSet(viewsets.ModelViewSet):
     """
     queryset = Product.objects.filter(is_active=True)
     serializer_class = ProductSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['category', 'slug']
+    lookup_field = 'slug'
     
     def get_queryset(self):
         # Admin users can see all products, others see only active ones
@@ -30,6 +34,6 @@ class ProductViewSet(viewsets.ModelViewSet):
         """Set custom permissions for different actions."""
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             self.permission_classes = [permissions.IsAdminUser]
-        else: # list, retrieve
+        else:
             self.permission_classes = [permissions.AllowAny]
         return super().get_permissions()
