@@ -1,7 +1,15 @@
 from rest_framework import serializers
+from django.contrib.auth import get_user_model
 from .models import Cart, CartItem, Order, OrderItem
 from products.serializers import ProductSerializer
 
+User = get_user_model()
+
+class UserSerializer(serializers.ModelSerializer):
+    """Serializer for user information in orders"""
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'first_name', 'last_name']
 
 class CartItemSerializer(serializers.ModelSerializer):
     """
@@ -18,7 +26,6 @@ class CartItemSerializer(serializers.ModelSerializer):
     def get_subtotal(self, obj):
         return obj.product.price * obj.quantity
 
-
 class CartSerializer(serializers.ModelSerializer):
     """
     Serializer for the Cart model.
@@ -34,7 +41,6 @@ class CartSerializer(serializers.ModelSerializer):
     def get_total_price(self, obj):
         return sum(item.product.price * item.quantity for item in obj.items.all())
 
-
 class OrderItemSerializer(serializers.ModelSerializer):
     """
     Serializer for the OrderItem model.
@@ -46,15 +52,18 @@ class OrderItemSerializer(serializers.ModelSerializer):
         model = OrderItem
         fields = ['id', 'product', 'quantity', 'price_at_time', 'subtotal']
 
-
 class OrderSerializer(serializers.ModelSerializer):
     """
     Serializer for the Order model.
-    Includes nested order items for a complete order view.
+    Includes nested order items and full user details for admin view.
     """
     items = OrderItemSerializer(many=True, read_only=True)
-    user = serializers.StringRelatedField() # Display username instead of ID
+    user = UserSerializer(read_only=True)  # Full user details instead of just string
 
     class Meta:
         model = Order
-        fields = ['id', 'user', 'order_number', 'status', 'total_amount', 'items', 'shipping_address', 'billing_address', 'payment_method', 'created_at', 'updated_at']
+        fields = [
+            'id', 'user', 'order_number', 'status', 'total_amount', 
+            'items', 'shipping_address', 'billing_address', 'payment_method', 
+            'notes', 'created_at', 'updated_at'
+        ]

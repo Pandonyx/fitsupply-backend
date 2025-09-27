@@ -1,9 +1,10 @@
 from django.db import transaction
-from rest_framework import viewsets, status, generics
+from rest_framework import viewsets, status, generics, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.exceptions import ValidationError, NotFound
+from decimal import Decimal
 
 from .models import Cart, CartItem, Order, OrderItem, Product
 from .serializers import CartSerializer, OrderSerializer, CartItemSerializer
@@ -98,47 +99,104 @@ class ClearCartView(APIView):
 class OrderViewSet(viewsets.ModelViewSet):
     """
     Handles creating and viewing orders.
+    - Admin users can see all orders
+    - Regular users can only see their own orders
     """
     serializer_class = OrderSerializer
-    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        """Users can only see their own orders."""
-        return Order.objects.filter(user=self.request.user).order_by('-created_at')
+        """Return appropriate queryset based on user permissions."""
+        if self.request.user.is_staff:
+            # Admin can see all orders
+            return Order.objects.all().select_related('user').prefetch_related('items__product').order_by('-created_at')
+        else:
+            # Regular users see only their orders
+            return Order.objects.filter(user=self.request.user).select_related('user').prefetch_related('items__product').order_by('-created_at')
+
+    def get_permissions(self):
+        """Set permissions based on action."""
+        if self.action in ['list', 'retrieve', 'update', 'partial_update']:
+            # Admin can list/view/update all orders, users can only see their own
+            permission_classes = [IsAuthenticated]
+        elif self.action == 'create':
+            # Anyone authenticated can create orders
+            permission_classes = [IsAuthenticated]
+        elif self.action == 'destroy':
+            # Only admin can delete orders
+            permission_classes = [IsAdminUser]
+        else:
+            permission_classes = [IsAuthenticated]
+        
+        return [permission() for permission in permission_classes]
+
+    def list(self, request, *args, **kwargs):
+        """List orders with proper permissions."""
+        if not request.user.is_staff:
+            # Regular users get their own orders
+            return super().list(request, *args, **kwargs)
+        else:
+            # Admin gets all orders
+            return super().list(request, *args, **kwargs)
 
     def perform_create(self, serializer):
-        """Create an order from the user's cart."""
-        cart = Cart.objects.filter(user=self.request.user).first()
-        if not cart or not cart.items.exists():
-            raise ValidationError("Your cart is empty.")
+        """Create an order from submitted cart data."""
+        submitted_items = self.request.data.get('items', [])
+        
+        if not submitted_items:
+            raise ValidationError("No items provided for order.")
 
         # Use a transaction to ensure atomicity
         with transaction.atomic():
             # Check for sufficient stock before creating the order
-            for item in cart.items.all():
-                if item.product.stock_quantity < item.quantity:
-                    raise ValidationError(f"Not enough stock for {item.product.name}. Available: {item.product.stock_quantity}")
+            total_amount = Decimal('0.00')
+            
+            for item_data in submitted_items:
+                try:
+                    product = Product.objects.get(id=item_data['product_id'])
+                except Product.DoesNotExist:
+                    raise ValidationError(f"Product with ID {item_data['product_id']} not found.")
+                
+                quantity = int(item_data['quantity'])
+                
+                if product.stock_quantity < quantity:
+                    raise ValidationError(f"Not enough stock for {product.name}. Available: {product.stock_quantity}")
+                
+                total_amount += product.price * quantity
 
-            # Calculate total amount
-            total_amount = sum(item.product.price * item.quantity for item in cart.items.all())
-
+            # Create the order
             order = serializer.save(
                 user=self.request.user,
                 total_amount=total_amount
             )
 
             # Create order items and decrease product stock
-            for cart_item in cart.items.all():
+            for item_data in submitted_items:
+                product = Product.objects.get(id=item_data['product_id'])
+                quantity = int(item_data['quantity'])
+                
                 OrderItem.objects.create(
                     order=order,
-                    product=cart_item.product,
-                    quantity=cart_item.quantity,
-                    price_at_time=cart_item.product.price
+                    product=product,
+                    quantity=quantity,
+                    price_at_time=product.price
                 )
+                
                 # Decrease stock
-                product = cart_item.product
-                product.stock_quantity -= cart_item.quantity
+                product.stock_quantity -= quantity
                 product.save()
 
-            # Clear the cart
-            cart.items.all().delete()
+            # Clear the user's server-side cart if it exists
+            cart = Cart.objects.filter(user=self.request.user).first()
+            if cart:
+                cart.items.all().delete()
+
+    def update(self, request, *args, **kwargs):
+        """Allow admin to update order status, users to update limited fields."""
+        if not request.user.is_staff:
+            # Regular users can only update limited fields (like notes)
+            allowed_fields = ['notes']
+            for field in request.data:
+                if field not in allowed_fields:
+                    raise ValidationError(f"You don't have permission to update {field}")
+        
+        return super().update(request, *args, **kwargs)

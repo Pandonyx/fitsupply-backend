@@ -7,15 +7,18 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'slug', 'description']
 
 class ProductSerializer(serializers.ModelSerializer):
-    # Use StringRelatedField to show the category name instead of its ID
-    category_name = serializers.CharField(source='category.name', read_only=True)
+    category = CategorySerializer(read_only=True)
+    category_id = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all(), 
+        source='category', 
+        write_only=True
+    )
 
     class Meta:
         model = Product
         fields = [
-            'id', 'name', 'slug', 'category', 'category_name', 'short_description', 'price',
-            'compare_price', 'stock_quantity', 'is_featured', 'is_active', 'image'
+            'id', 'name', 'slug', 'description', 'short_description', 
+            'image', 'price', 'compare_price', 'sku', 'stock_quantity', 
+            'low_stock_threshold', 'is_active', 'is_featured', 
+            'category', 'category_id', 'created_at', 'updated_at'
         ]
-        extra_kwargs = {
-            'category': {'write_only': True}
-        }
