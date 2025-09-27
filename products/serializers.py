@@ -13,6 +13,8 @@ class ProductSerializer(serializers.ModelSerializer):
         source='category', 
         write_only=True
     )
+    # Only make image optional for updates, not required for creation
+    image = serializers.ImageField(required=False)
 
     class Meta:
         model = Product
