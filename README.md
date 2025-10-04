@@ -190,5 +190,3 @@ Base URL: `/api/analytics/`
 | Method | Endpoint        | Description                                 | Authentication |
 | :----- | :-------------- | :------------------------------------------ | :------------- |
 | `GET`  | `sales-report/` | Get a report of sales data (e.g., monthly). | Admin Only     |
-
-_Note: The exact endpoint paths and required permissions (e.g., Admin Only) depend on the implementation in your `urls.py` and `views.py` files. This documentation assumes a standard RESTful convention._
