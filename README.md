@@ -2,6 +2,9 @@
 
 Welcome to the backend API for FitSupply, an e-commerce platform for fitness products. This service is built with Django and Django REST Framework, providing a robust, scalable, and secure foundation for the application.
 
+https://pandonyx.pythonanywhere.com/admin/
+for the demo purposes the login is admin , password admin1234
+
 ## Table of Contents
 
 - [Features](#features)
